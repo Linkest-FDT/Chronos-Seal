@@ -1,53 +1,80 @@
-export default {
-  title: 'Chronos Seal',
-  description: '时序为封印 · 行为作密钥 · 岁月守护原创',
-  base: '/',
-  lang: 'zh-CN',
-  head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
-    // Google Analytics (gtag.js)
-    ['script', { async: true, src: 'https://www.googletagmanager.com/gtag/js?id=G-KVE03FKWDV' }],
-    ['script', {}, `
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-KVE03FKWDV');
-    `]
-  ],
-  themeConfig: {
-    siteTitle: 'Chronos Seal',
-    nav: [
-      { text: '指南', link: '/guide/introduction' },
-      { text: '主仓库', link: 'https://github.com/CLARE-XHL/Chronos-Seal' },
-      { text: '模板仓库', link: 'https://github.com/CLARE-XHL/Chronos-Builder-Template' }
-    ],
-    sidebar: [
-      { text: '前言', link: '/guide/introduction' },
-      { text: '快速开始', link: '/guide/getting-started' },
-      { text: '使用 JS 插件与布入事件', link: '/guide/using-plugin' },
-      { text: 'Fork 仓库与 Action 工作流', link: '/guide/fork-and-action' },
-      { text: '使用 BAT 加密资源', link: '/guide/encrypt-assets' },
-      { text: '构建工作', link: '/guide/build-work' },
-      { text: '网络环境', link: '/guide/network' },
-      { text: '错误码', link: '/reference/error-codes' },
-      { text: '常见问题', link: '/guide/faq' },
-      { text: '关于 Chronos Seal', link: '/guide/about' },
-      { text: '如何反馈', link: '/guide/feedback' },
-      { text: '更新日志', link: '/reference/changelog' },
-      { text: '贡献者名单', link: '/guide/contributors' },
-      { text: '赞助者名单', link: '/guide/sponsors' }
-    ],
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/CLARE-XHL/Chronos-Seal' }
-    ],
-    footer: {
-      message: 'MIT License',
-      copyright: `Copyright © ${new Date().getFullYear()} CLARE-XHL · CrCLARE 工作室`
-    },
-    lastUpdated: true,
-    editLink: {
-      pattern: 'https://github.com/CLARE-XHL/Chronos-Seal/edit/main/docs/:path',
-      text: '在 GitHub 上编辑此页'
-    }
-  }
-}
+name: Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: docs/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('docs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+        working-directory: docs
+
+      - name: Build VitePress site
+        run: npm run docs:build
+        working-directory: docs
+
+      # 只有非 PR（即 push 到 main 或手动触发）才配置 Pages
+      - name: Setup Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v4
+
+      # 只有非 PR 才上传 artifact
+      - name: Upload artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
