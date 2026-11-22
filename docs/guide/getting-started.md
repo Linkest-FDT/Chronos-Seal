@@ -10,7 +10,9 @@ Chronos Seal 是一套适用于 RPG Maker MV / MZ（Node.js 环境）的**无服
 目前 Chronos Seal 正在分化为三个版本，你可以根据自己的需求进行选择：
 *   **Basic 版**：当前已发布（V2.2），基于命令行与 GitHub Actions，适合有一定折腾能力的开发者。
 *   **GUI 版**（开发中）：Electron 桌面应用，一键点按，带有友好的 OOBE 引导流程，适合绝大多数普通创作者。
-*   **Pro 版**（规划中）：在 GUI 基础上接入 Logto 云端身份验证，提供动态防护，适合商业化与高强度防破解需求。
+*   **Pro 版**（规划中）：在 Basic 基础上接入 Logto 云端身份验证，提供动态防护，适合商业化与高强度防破解需求。
+
+> 除本页外，其他页面全部为 Chronos Seal Basic V2.1 的文档，对于其他版本请参考 Released Notes。
 
 ## 谁适合使用 Chronos Seal？
 
