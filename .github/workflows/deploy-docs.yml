@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'docs/**'
-  pull_request: # 新增：PR 阶段触发，用于检测死链
+  pull_request:
     branches:
       - main
     paths:
@@ -19,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-${{ github.ref }} # 区分 PR 和 main 分支，避免互相取消
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,11 +33,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: 'docs/package-lock.json' # 开启缓存，大幅提速
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: docs/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('docs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: docs
 
       - name: Build VitePress site
@@ -57,7 +63,7 @@ jobs:
           path: docs/.vitepress/dist
 
   deploy:
-    if: github.event_name != 'pull_request' # PR 阶段只测，不部署
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
